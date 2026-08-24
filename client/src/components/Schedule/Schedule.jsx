@@ -33,7 +33,17 @@ function Schedule({ venues, competitionEvents, competitionId }) {
     sortedActivities.map((activity) => toLocalDateString(activity.startTime)),
   );
 
-  const [selectedDate, setSelectedDate] = useState(closestDateString(dates));
+  // We store the selected date, so that it's preserved when the user
+  // navigates to a round and comes back.
+  const [selectedDate, setSelectedDate] = useState(
+    () =>
+      getStoredScheduleDate(competitionId, dates) ?? closestDateString(dates),
+  );
+
+  function handleDateChange(date) {
+    setSelectedDate(date);
+    storeScheduleDate(competitionId, date);
+  }
 
   const selectedDateActivities = sortedActivities.filter(
     (activity) => toLocalDateString(activity.startTime) === selectedDate,
@@ -52,7 +62,7 @@ function Schedule({ venues, competitionEvents, competitionId }) {
           variant="scrollable"
           textColor="inherit"
           value={selectedDate}
-          onChange={(event, value) => setSelectedDate(value)}
+          onChange={(event, value) => handleDateChange(value)}
         >
           {dates.map((date) => (
             <Tab key={date} label={formatDateShort(date)} value={date} />
@@ -74,6 +84,30 @@ function Schedule({ venues, competitionEvents, competitionId }) {
         )}
       </Grid>
     </>
+  );
+}
+
+const SCHEDULE_DATE_KEY = "scheduleDate";
+
+function getStoredScheduleDate(competitionId, dates) {
+  try {
+    const stored = JSON.parse(sessionStorage.getItem(SCHEDULE_DATE_KEY));
+    if (
+      stored?.competitionId === competitionId &&
+      dates.includes(stored?.date)
+    ) {
+      return stored.date;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function storeScheduleDate(competitionId, date) {
+  sessionStorage.setItem(
+    SCHEDULE_DATE_KEY,
+    JSON.stringify({ competitionId, date }),
   );
 }
 
