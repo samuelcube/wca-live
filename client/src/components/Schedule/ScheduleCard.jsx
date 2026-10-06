@@ -39,19 +39,18 @@ function getRoundName(competitionEvents, roundId) {
     competitionEvents,
     roundId,
   );
-
   return `${event.name} - ${round.name}`;
 }
 
 function getTimeLimitText(round, event, competitionEvents) {
   if (!round.timeLimit) return null;
 
-  if (event.id === "333fm"){
-    return `Time limit: 60 minutes`
+  if (event.id === "333fm") {
+    return "Time limit: 60 minutes";
   }
 
-  if (event.id === "333mbf"){
-    return `Time limit: 10 minutes per cube, max. 60 minutes`
+  if (event.id === "333mbf") {
+    return "Time limit: 10 minutes per cube, max. 60 minutes";
   }
 
   const time = formatCentiseconds(round.timeLimit.centiseconds);
@@ -98,7 +97,6 @@ function ScheduleCard({
   competitionId,
 }) {
   const { attemptNumber } = parseActivityCode(activityCode);
-
   const { event, round } = eventRoundForActivityCode(
     competitionEvents,
     activityCode,
@@ -108,27 +106,13 @@ function ScheduleCard({
     ? `${event.name} - ${round.name} (Attempt ${attemptNumber})`
     : `${event.name} - ${round.name}`;
 
-  const timeLimitText = getTimeLimitText(
-    round,
-    event,
-    competitionEvents,
-  );
-
+  const timeLimitText = getTimeLimitText(round, event, competitionEvents);
   const cutoffText = getCutoffText(round, event);
 
-  const startTime = min(
-    activities.map((activity) => activity.startTime),
-  );
-
-  const endTime = max(
-    activities.map((activity) => activity.endTime),
-  );
-
+  const startTime = min(activities.map((activity) => activity.startTime));
+  const endTime = max(activities.map((activity) => activity.endTime));
   const duration = parseISO(endTime) - parseISO(startTime);
-
-  const distanceFromStart =
-    new Date() - parseISO(startTime);
-
+  const distanceFromStart = new Date() - parseISO(startTime);
   const progressPercentage = Math.round(
     (clamp(distanceFromStart, 0, duration) / duration) * 100,
   );
@@ -145,12 +129,8 @@ function ScheduleCard({
         to={`/competitions/${competitionId}/rounds/${round.id}`}
         disabled={!round.open}
       >
-        <CardHeader
-          avatar={<CubingIcon eventId={event.id} />}
-          title={title}
-        />
+        <CardHeader avatar={<CubingIcon eventId={event.id} />} title={title} />
       </CardActionArea>
-
       <CardContent>
         <Grid container spacing={1}>
           {timeLimitText && (
@@ -160,7 +140,6 @@ function ScheduleCard({
               </Typography>
             </Grid>
           )}
-
           {cutoffText && (
             <Grid item xs={12}>
               <Typography variant="body2" color="text.secondary">
@@ -168,26 +147,16 @@ function ScheduleCard({
               </Typography>
             </Grid>
           )}
-
           {activities.map((activity) => (
             <Grid key={activity.id} item xs={6}>
               <RoomLabel room={activity.room} />
-
-              <Typography
-                component="span"
-                variant="body2"
-                sx={{ ml: 1 }}
-              >
-                {formatTimeRange(
-                  activity.startTime,
-                  activity.endTime,
-                )}
+              <Typography component="span" variant="body2" sx={{ ml: 1 }}>
+                {formatTimeRange(activity.startTime, activity.endTime)}
               </Typography>
             </Grid>
           ))}
         </Grid>
       </CardContent>
-
       {0 < progressPercentage && progressPercentage < 100 && (
         <LinearProgress
           variant="determinate"
@@ -204,4 +173,4 @@ function ScheduleCard({
   );
 }
 
-export default ScheduleCard; ich habe etwas geändert#
+export default ScheduleCard;
