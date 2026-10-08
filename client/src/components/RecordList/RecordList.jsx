@@ -11,9 +11,24 @@ import RecordTag from "../RecordTag/RecordTag";
 import { formatAttemptResult } from "../../lib/attempt-result";
 
 function RecordList({ title, records }) {
+  const wrCount = records.filter((record) => record.tag === "WR").length;
+  const crCount = records.filter((record) => record.tag === "CR").length;
+  const nrCount = records.filter((record) => record.tag === "NR").length;
+
   return (
     <List dense={true} disablePadding>
-      {title && <ListSubheader disableSticky>{title}</ListSubheader>}
+      {title && (
+        <ListSubheader disableSticky>
+          {title} (
+          {wrCount === 0 ? `` : `WR: ${wrCount}`}
+          {wrCount > 0 && (crCount > 0 || nrCount > 0) ? `, ` : ``}
+          {crCount === 0 ? `` : `CR: ${crCount}`}
+          {crCount > 0 && nrCount > 0 ? `, ` : ``}
+          {nrCount === 0 ? `` : `NR: ${nrCount}`}
+          )
+        </ListSubheader>
+      )}
+
       <Box
         sx={{
           maxHeight: 300,
@@ -29,6 +44,7 @@ function RecordList({ title, records }) {
             <ListItemIcon>
               <RecordTag recordTag={record.tag} />
             </ListItemIcon>
+
             <ListItemText
               primary={
                 <span>
