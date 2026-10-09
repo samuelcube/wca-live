@@ -12,7 +12,10 @@ import {
 } from "@mui/material";
 import { yellow, green } from "@mui/material/colors";
 import { times } from "../../lib/utils";
-import { formatAttemptResult } from "../../lib/attempt-result";
+import {
+  compareAttemptResults,
+  formatAttemptResult,
+} from "../../lib/attempt-result";
 import { orderedResultStats, paddedAttemptResults } from "../../lib/result";
 import RecordTagBadge from "../RecordTagBadge/RecordTagBadge";
 import ResultStat from "../ResultStat/ResultStat";
@@ -93,79 +96,118 @@ const RoundResultsTable = memo(
             </TableRow>
           </TableHead>
           <TableBody>
-            {results.map((result) => (
-              <TableRow
-                key={result.id}
-                hover
-                sx={{
-                  whiteSpace: "nowrap",
-                  "&:last-child td": { border: 0 },
-                }}
-                onClick={() => onResultClick && onResultClick(result)}
-              >
-                <TableCell
-                  align="right"
+            {results.map((result) => {
+              const attemptResults = paddedAttemptResults(
+                result,
+                format.numberOfAttempts,
+              );
+              const isAo5WithCompleteAverage =
+                format.numberOfAttempts === 5 && result.average > 0;
+              const completeAttempts = isAo5WithCompleteAverage
+                ? attemptResults.filter((attemptResult) => attemptResult > 0)
+                : [];
+
+              const bestAttempt =
+                completeAttempts.length > 0
+                  ? completeAttempts
+                      .slice()
+                      .sort(compareAttemptResults)[0]
+                  : null;
+
+              const worstAttempt =
+                completeAttempts.length > 0
+                  ? completeAttempts
+                      .slice()
+                      .sort(compareAttemptResults)[completeAttempts.length - 1]
+                  : null;
+
+              return (
+                <TableRow
+                  key={result.id}
+                  hover
                   sx={{
-                    ...styles.cell,
-                    ...styles.ranking,
-                    ...(result.advancing ? styles.advancing : {}),
-                    ...(result.advancingQuestionable
-                      ? styles.advancingQuestionable
-                      : {}),
+                    whiteSpace: "nowrap",
+                    "&:last-child td": { border: 0 },
                   }}
+                  onClick={() => onResultClick && onResultClick(result)}
                 >
-                  {result.ranking}
-                </TableCell>
-                <TableCell
-                  sx={{ ...styles.cell, ...styles.name }}
-                  translate="no"
-                >
-                  {smScreen ? (
-                    <Link
-                      component={RouterLink}
-                      to={`/competitions/${competitionId}/competitors/${result.person.id}`}
-                      underline="hover"
-                    >
-                      {result.person.name}
-                    </Link>
-                  ) : (
-                    result.person.name
-                  )}
-                </TableCell>
-                {mdScreen && (
-                  <TableCell sx={styles.cell}>
-                    {result.person.country.name}
-                  </TableCell>
-                )}
-                {smScreen &&
-                  paddedAttemptResults(result, format.numberOfAttempts).map(
-                    (attemptResult, index) => (
-                      <TableCell key={index} align="right" sx={styles.cell}>
-                        {formatAttemptResult(attemptResult, eventId)}
-                      </TableCell>
-                    ),
-                  )}
-                {stats.map(({ name, field, recordTagField }, index) => (
                   <TableCell
-                    key={name}
                     align="right"
                     sx={{
                       ...styles.cell,
-                      fontWeight: index === 0 ? 600 : 400,
+                      ...styles.ranking,
+                      ...(result.advancing ? styles.advancing : {}),
+                      ...(result.advancingQuestionable
+                        ? styles.advancingQuestionable
+                        : {}),
                     }}
                   >
-                    <RecordTagBadge litePr recordTag={result[recordTagField]}>
-                      <ResultStat
-                        result={result}
-                        field={field}
-                        eventId={eventId}
-                        forecastView={forecastView}
-                      />
-                    </RecordTagBadge>
+                    {result.ranking}
                   </TableCell>
-                ))}
-              </TableRow>
-            ))}
+                  <TableCell
+                    sx={{ ...styles.cell, ...styles.name }}
+                    translate="no"
+                  >
+                    {smScreen ? (
+                      <Link
+                        component={RouterLink}
+                        to={`/competitions/${competitionId}/competitors/${result.person.id}`}
+                        underline="hover"
+                      >
+                        {result.person.name}
+                      </Link>
+                    ) : (
+                      result.person.name
+                    )}
+                  </TableCell>
+                  {mdScreen && (
+                    <TableCell sx={styles.cell}>
+                      {result.person.country.name}
+                    </TableCell>
+                  )}
+                  {smScreen &&
+                    attemptResults.map((attemptResult, index) => {
+                      const isBestOrWorst =
+                        isAo5WithCompleteAverage &&
+                        attemptResult > 0 &&
+                        (compareAttemptResults(attemptResult, bestAttempt) ===
+                          0 ||
+                          compareAttemptResults(attemptResult, worstAttempt) ===
+                            0);
+
+                      const formatted = formatAttemptResult(
+                        attemptResult,
+                        eventId,
+                      );
+
+                      return (
+                        <TableCell key={index} align="right" sx={styles.cell}>
+                          {isBestOrWorst ? `(${formatted})` : formatted}
+                        </TableCell>
+                      );
+                    })}
+                  {stats.map(({ name, field, recordTagField }, index) => (
+                    <TableCell
+                      key={name}
+                      align="right"
+                      sx={{
+                        ...styles.cell,
+                        fontWeight: index === 0 ? 600 : 400,
+                      }}
+                    >
+                      <RecordTagBadge litePr recordTag={result[recordTagField]}>
+                        <ResultStat
+                          result={result}
+                          field={field}
+                          eventId={eventId}
+                          forecastView={forecastView}
+                        />
+                      </RecordTagBadge>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Paper>
