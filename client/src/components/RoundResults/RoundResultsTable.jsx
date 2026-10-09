@@ -1,3 +1,4 @@
+
 import { memo } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import {
@@ -12,7 +13,11 @@ import {
 } from "@mui/material";
 import { yellow, green } from "@mui/material/colors";
 import { times } from "../../lib/utils";
-import { formatAttemptResult } from "../../lib/attempt-result";
+import {
+  compareAttemptResults,
+  formatAttemptResult,
+  isSkipped,
+} from "../../lib/attempt-result";
 import { orderedResultStats, paddedAttemptResults } from "../../lib/result";
 import RecordTagBadge from "../RecordTagBadge/RecordTagBadge";
 import ResultStat from "../ResultStat/ResultStat";
@@ -92,80 +97,108 @@ const RoundResultsTable = memo(
               ))}
             </TableRow>
           </TableHead>
+
           <TableBody>
-            {results.map((result) => (
-              <TableRow
-                key={result.id}
-                hover
-                sx={{
-                  whiteSpace: "nowrap",
-                  "&:last-child td": { border: 0 },
-                }}
-                onClick={() => onResultClick && onResultClick(result)}
-              >
-                <TableCell
-                  align="right"
+            {results.map((result) => {
+              const attempts = paddedAttemptResults(
+                result,
+                format.numberOfAttempts,
+              );
+
+              const sortedIndices = attempts
+                .map((_, index) => index)
+                .sort(
+                  (a, b) =>
+                    compareAttemptResults(attempts[a], attempts[b]) || a - b,
+                );
+
+              const bestIndex = sortedIndices[0];
+              const worstIndex = sortedIndices[sortedIndices.length - 1];
+
+              const showParentheses =
+                format.numberOfAttempts === 5 &&
+                format.sortBy !== "best" &&
+                !attempts.some(isSkipped);
+
+              return (
+                <TableRow
+                  key={result.id}
+                  hover
                   sx={{
-                    ...styles.cell,
-                    ...styles.ranking,
-                    ...(result.advancing ? styles.advancing : {}),
-                    ...(result.advancingQuestionable
-                      ? styles.advancingQuestionable
-                      : {}),
+                    whiteSpace: "nowrap",
+                    "&:last-child td": { border: 0 },
                   }}
+                  onClick={() => onResultClick && onResultClick(result)}
                 >
-                  {result.ranking}
-                </TableCell>
-                <TableCell
-                  sx={{ ...styles.cell, ...styles.name }}
-                  translate="no"
-                >
-                  {smScreen ? (
-                    <Link
-                      component={RouterLink}
-                      to={`/competitions/${competitionId}/competitors/${result.person.id}`}
-                      underline="hover"
-                    >
-                      {result.person.name}
-                    </Link>
-                  ) : (
-                    result.person.name
-                  )}
-                </TableCell>
-                {mdScreen && (
-                  <TableCell sx={styles.cell}>
-                    {result.person.country.name}
-                  </TableCell>
-                )}
-                {smScreen &&
-                  paddedAttemptResults(result, format.numberOfAttempts).map(
-                    (attemptResult, index) => (
-                      <TableCell key={index} align="right" sx={styles.cell}>
-                        {formatAttemptResult(attemptResult, eventId)}
-                      </TableCell>
-                    ),
-                  )}
-                {stats.map(({ name, field, recordTagField }, index) => (
                   <TableCell
-                    key={name}
                     align="right"
                     sx={{
                       ...styles.cell,
-                      fontWeight: index === 0 ? 600 : 400,
+                      ...styles.ranking,
+                      ...(result.advancing ? styles.advancing : {}),
+                      ...(result.advancingQuestionable
+                        ? styles.advancingQuestionable
+                        : {}),
                     }}
                   >
-                    <RecordTagBadge litePr recordTag={result[recordTagField]}>
-                      <ResultStat
-                        result={result}
-                        field={field}
-                        eventId={eventId}
-                        forecastView={forecastView}
-                      />
-                    </RecordTagBadge>
+                    {result.ranking}
                   </TableCell>
-                ))}
-              </TableRow>
-            ))}
+
+                  <TableCell
+                    sx={{ ...styles.cell, ...styles.name }}
+                    translate="no"
+                  >
+                    {smScreen ? (
+                      <Link
+                        component={RouterLink}
+                        to={`/competitions/${competitionId}/competitors/${result.person.id}`}
+                        underline="hover"
+                      >
+                        {result.person.name}
+                      </Link>
+                    ) : (
+                      result.person.name
+                    )}
+                  </TableCell>
+
+                  {mdScreen && (
+                    <TableCell sx={styles.cell}>
+                      {result.person.country.name}
+                    </TableCell>
+                  )}
+
+                  {smScreen &&
+                    attempts.map((attemptResult, index) => (
+                      <TableCell key={index} align="right" sx={styles.cell}>
+                        {showParentheses &&
+                        (index === bestIndex || index === worstIndex)
+                          ? `(${formatAttemptResult(attemptResult, eventId)})`
+                          : formatAttemptResult(attemptResult, eventId)}
+                      </TableCell>
+                    ))}
+
+                  {stats.map(({ name, field, recordTagField }, index) => (
+                    <TableCell
+                      key={name}
+                      align="right"
+                      sx={{
+                        ...styles.cell,
+                        fontWeight: index === 0 ? 600 : 400,
+                      }}
+                    >
+                      <RecordTagBadge litePr recordTag={result[recordTagField]}>
+                        <ResultStat
+                          result={result}
+                          field={field}
+                          eventId={eventId}
+                          forecastView={forecastView}
+                        />
+                      </RecordTagBadge>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Paper>
