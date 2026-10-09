@@ -12,7 +12,10 @@ import {
 } from "@mui/material";
 import { yellow, green } from "@mui/material/colors";
 import { times } from "../../lib/utils";
-import { formatAttemptResult } from "../../lib/attempt-result";
+import {
+  compareAttemptResults,
+  formatAttemptResult,
+} from "../../lib/attempt-result";
 import { orderedResultStats, paddedAttemptResults } from "../../lib/result";
 import RecordTagBadge from "../RecordTagBadge/RecordTagBadge";
 import ResultStat from "../ResultStat/ResultStat";
@@ -139,11 +142,54 @@ const RoundResultsTable = memo(
                 )}
                 {smScreen &&
                   paddedAttemptResults(result, format.numberOfAttempts).map(
-                    (attemptResult, index) => (
-                      <TableCell key={index} align="right" sx={styles.cell}>
-                        {formatAttemptResult(attemptResult, eventId)}
-                      </TableCell>
-                    ),
+                    (attemptResult, index) => {
+                      const shouldHighlightAttempt =
+                        format.numberOfAttempts === 5 &&
+                        result.average > 0 &&
+                        attemptResult > 0;
+
+                      if (!shouldHighlightAttempt) {
+                        return (
+                          <TableCell key={index} align="right" sx={styles.cell}>
+                            {formatAttemptResult(attemptResult, eventId)}
+                          </TableCell>
+                        );
+                      }
+
+                      // For Ao5 with complete average, identify best and worst
+                      const completeAttemptResults = paddedAttemptResults(
+                        result,
+                        format.numberOfAttempts,
+                      ).filter((candidate) => candidate > 0);
+
+                      const bestAttempt = completeAttemptResults
+                        .slice()
+                        .sort(compareAttemptResults)[0];
+                      const worstAttempt = completeAttemptResults
+                        .slice()
+                        .sort(compareAttemptResults)[
+                          completeAttemptResults.length - 1
+                        ];
+
+                      const isBestOrWorst =
+                        compareAttemptResults(attemptResult, bestAttempt) ===
+                          0 ||
+                        compareAttemptResults(attemptResult, worstAttempt) ===
+                          0;
+
+                      const formattedAttempt = formatAttemptResult(
+                        attemptResult,
+                        eventId,
+                      );
+
+                      return (
+                        <TableCell key={index} align="right" sx={styles.cell}>
+                          {isBestOrWorst
+                            ? `(${formattedAttempt})`
+                            : formattedAttempt}
+                        </TableCell>
+                      );
+                    },
                   )}
                 {stats.map(({ name, field, recordTagField }, index) => (
                   <TableCell
